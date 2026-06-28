@@ -1,0 +1,40 @@
+name: Build Android APK
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev lld
+          pip install --upgrade pip
+          pip install buildozer cython gitpython
+
+      - name: Run Buildozer
+        run: |
+          buildozer init
+          # লাইসেন্স এক্সেপ্ট করা এবং রিকোয়ারমেন্টস ঠিক করা
+          sed -i 's/#android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
+          sed -i 's/requirements = python3,kivy/requirements = python3,kivy,requests/' buildozer.spec
+          buildozer android debug
+        env:
+          BUILDOZER_WARN_ON_ROOT: 0
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mobile-App-APK
+          path: bin/*.apk
